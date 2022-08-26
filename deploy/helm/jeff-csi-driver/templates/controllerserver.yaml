@@ -1,0 +1,109 @@
+---
+kind: StatefulSet
+apiVersion: apps/v1
+metadata:
+  name: {{ .Release.Name }}-driver
+  namespace: {{ .Release.Namespace }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}-driver
+  serviceName: {{ .Release.Name }}-driver
+  replicas: {{ required "count of instances required." .Values.instanceCount }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}-driver
+    spec:
+      serviceAccount: {{ .Release.Name }}-driver
+      containers:
+        - name: attacher
+          image: {{ required "csi attacher sidercar image." .Values.images.attachersidecar }}
+          imagePullPolicy: {{ .Values.images.attachersidecar_pull_policy | default "Always" | quote }}
+          securityContext:
+            privileged: true
+            capabilities:
+              add: ["SYS_ADMIN"]
+            allowPrivilegeEscalation: true 
+          args:
+            - "--csi-address=$(ADDRESS)"
+            - "--v=5"
+          env:
+            - name: ADDRESS
+              value: /var/run/csi/csi.sock
+          volumeMounts:
+            - name: socket-dir
+              mountPath: /var/run/csi
+        - name: provisioner
+          image: {{ required "csi provisioner sidecar container image." .Values.images.provisionersidecar }}
+          imagePullPolicy: {{  .Values.images.provisionersidecar_pull_policy | default "Always" | quote }}
+          args:
+            - "--csi-address=$(ADDRESS)"
+            - "--volume-name-prefix={{ required "Must provide a value to prefix to driver created volume names" .Values.volumeNamePrefix }}"
+            - "--volume-name-uuid-length=10"
+            - "--v=5"
+          env:
+            - name: ADDRESS
+              value: /var/run/csi/csi.sock
+          volumeMounts:
+            - name: socket-dir
+              mountPath: /var/run/csi
+        - name: snapshotter
+          image: {{ required "csi snapshotter sidecar container image." .Values.images.snapshottersidecar }}
+          imagePullPolicy: {{ .Values.images.snapshottersidecar_pull_policy | default "Always" | quote }}
+          args:
+            - "--csi-address=$(ADDRESS)"
+            - "--v=5"   
+            - "--snapshot-name-prefix={{ required "Must provide a value to prefix to driver created snapshot names" .Values.volumeNamePrefix }}"
+            - "--snapshot-name-uuid-length=10"
+          env:
+            - name: ADDRESS
+              value: /var/run/csi/csi.sock
+          volumeMounts:
+            - name: socket-dir
+              mountPath: /var/run/csi
+        - name: resizer
+          image: {{ required "csi resizer sidercar image." .Values.images.resizersidecar }}
+          imagePullPolicy: {{ .Values.images.resizersidecar_pull_policy | default "Always" | quote }}
+          args:
+            - "--v=5"
+            - "--csi-address=$(ADDRESS)"
+          env:
+            - name: ADDRESS
+              value: /var/run/csi/csi.sock
+          volumeMounts:
+            - name: socket-dir
+              mountPath: /var/run/csi      
+        - name: driver
+          securityContext:
+            privileged: true
+            capabilities:
+              add: ["SYS_ADMIN"]
+            allowPrivilegeEscalation: true  
+          image: {{ required "Provide the Infinibox csi driver container image." .Values.images.csidriver }}
+          imagePullPolicy: {{ .Values.images.csidriver_pull_policy | default "Always" | quote }}
+          env:
+            - name: CSI_ENDPOINT
+              value: /var/run/csi/csi.sock
+            - name: APP_LOG_LEVEL
+              value: {{ .Values.logLevel }}
+            - name: CSI_DRIVER_NAME
+              value: {{ required "Provide CSI Driver Name"  .Values.csiDriverName }}
+            - name: CSI_DRIVER_VERSION
+              value: {{ required "Provide CSI Driver version"  .Values.csiDriverVersion }}
+            - name: X_CSI_MODE
+              value: controller
+            - name: X_CSI_DEBUG
+              value: "false"
+            - name: KUBE_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+          volumeMounts:
+            - name: socket-dir
+              mountPath: /var/run/csi
+      volumes:
+        - name: socket-dir
+          emptyDir:
+      imagePullSecrets:
+      - name: private-docker-reg-secret

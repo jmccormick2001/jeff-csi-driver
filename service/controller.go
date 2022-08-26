@@ -76,8 +76,69 @@ func (s *service) ControllerGetCapabilities(
 	ctx context.Context,
 	req *csi.ControllerGetCapabilitiesRequest) (
 	*csi.ControllerGetCapabilitiesResponse, error) {
+	return &csi.ControllerGetCapabilitiesResponse{
+		Capabilities: []*csi.ControllerServiceCapability{
+			{
+				Type: &csi.ControllerServiceCapability_Rpc{
+					Rpc: &csi.ControllerServiceCapability_RPC{
+						Type: csi.ControllerServiceCapability_RPC_CREATE_DELETE_VOLUME,
+					},
+				},
+			},
+			// &csi.ControllerServiceCapability{
+			//  Type: &csi.ControllerServiceCapability_Rpc{
+			//      Rpc: &csi.ControllerServiceCapability_RPC{
+			//          Type: csi.ControllerServiceCapability_RPC_LIST_VOLUMES,
+			//      },
+			//  },
+			// },
 
-	return nil, nil
+			// {
+			//  Type: &csi.ControllerServiceCapability_Rpc{
+			//      Rpc: &csi.ControllerServiceCapability_RPC{
+			//          Type: csi.ControllerServiceCapability_RPC_GET_CAPACITY,
+			//      },
+			//  },
+			// },
+
+			{
+				Type: &csi.ControllerServiceCapability_Rpc{
+					Rpc: &csi.ControllerServiceCapability_RPC{
+						Type: csi.ControllerServiceCapability_RPC_CREATE_DELETE_SNAPSHOT,
+					},
+				},
+			},
+			{
+				Type: &csi.ControllerServiceCapability_Rpc{
+					Rpc: &csi.ControllerServiceCapability_RPC{
+						Type: csi.ControllerServiceCapability_RPC_PUBLISH_UNPUBLISH_VOLUME,
+					},
+				},
+			},
+			{
+				Type: &csi.ControllerServiceCapability_Rpc{
+					Rpc: &csi.ControllerServiceCapability_RPC{
+						Type: csi.ControllerServiceCapability_RPC_CLONE_VOLUME,
+					},
+				},
+			},
+			// &csi.ControllerServiceCapability{
+			//  Type: &csi.ControllerServiceCapability_Rpc{
+			//      Rpc: &csi.ControllerServiceCapability_RPC{
+			//          Type: csi.ControllerServiceCapability_RPC_LIST_SNAPSHOTS,
+			//      },
+			//  },
+			// },
+			{
+				Type: &csi.ControllerServiceCapability_Rpc{
+					Rpc: &csi.ControllerServiceCapability_RPC{
+						Type: csi.ControllerServiceCapability_RPC_EXPAND_VOLUME,
+					},
+				},
+			},
+		},
+	}, nil
+
 }
 
 func (s *service) CreateSnapshot(

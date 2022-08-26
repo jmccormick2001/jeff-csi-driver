@@ -66,6 +66,10 @@ func (s *service) NodeGetInfo(
 	ctx context.Context,
 	req *csi.NodeGetInfoRequest) (
 	*csi.NodeGetInfoResponse, error) {
+	nodeFQDN := s.getNodeFQDN()
+	k8sNodeID := nodeFQDN + "$$" + s.nodeID
+	return &csi.NodeGetInfoResponse{
+		NodeId: k8sNodeID,
+	}, nil
 
-	return nil, nil
 }
